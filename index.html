@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Agente de Ocorrências — Offline</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d0f14; color: #c8cdd8; font-family: 'IBM Plex Sans', sans-serif; min-height: 100vh; }
+  .app { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
+  .header { border-bottom: 1px solid #1e2330; padding-bottom: 20px; margin-bottom: 28px; }
+  .header-top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+  .header-badge { display: inline-flex; align-items: center; gap: 6px; background: #ff3b3b18; border: 1px solid #ff3b3b44; color: #ff6b6b; font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; padding: 4px 10px; border-radius: 2px; margin-bottom: 12px; }
+  .dot { width:6px; height:6px; background:#ff3b3b; border-radius:50%; animation:blink 1.4s ease-in-out infinite; display:inline-block; }
+  @keyframes blink { 0%,100%{opacity:1}50%{opacity:0.2} }
+  h1 { font-size:22px; font-weight:600; color:#eef0f6; letter-spacing:-0.5px; }
+  h1 span { color:#4d8eff; }
+  .subtitle { font-size:13px; color:#5a6278; margin-top:6px; font-family:'IBM Plex Mono',monospace; }
+  .offline-badge { display:inline-flex; align-items:center; gap:5px; background:#1a2a0d; border:1px solid #3a5a1a; color:#8ac84d; font-family:'IBM Plex Mono',monospace; font-size:10px; padding:3px 8px; border-radius:2px; }
+  .btn-historico { background:none; border:1px solid #1e2330; color:#5a6278; border-radius:4px; padding:8px 14px; font-size:12px; font-family:'IBM Plex Mono',monospace; cursor:pointer; white-space:nowrap; transition:all 0.15s; }
+  .btn-historico:hover { border-color:#4d8eff; color:#4d8eff; }
+  .btn-historico.ativo { border-color:#4d8eff; color:#4d8eff; background:#0d1a33; }
+  .step-nav { display:flex; margin-bottom:28px; border:1px solid #1e2330; border-radius:4px; overflow:hidden; }
+  .step-pill { flex:1; padding:8px 4px; text-align:center; font-size:10px; font-family:'IBM Plex Mono',monospace; color:#3a4055; border-right:1px solid #1e2330; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .step-pill:last-child { border-right:none; }
+  .step-pill.done { color:#2a8a5a; background:#0d2018; }
+  .step-pill.active { color:#4d8eff; background:#0d1a33; font-weight:600; }
+  .card { background:#111420; border:1px solid #1e2330; border-radius:6px; padding:24px; margin-bottom:20px; }
+  .card-title { font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; color:#4d8eff; letter-spacing:2px; text-transform:uppercase; margin-bottom:20px; display:flex; align-items:center; gap:8px; }
+  .card-title::after { content:''; flex:1; height:1px; background:#1e2330; }
+  .field { margin-bottom:16px; }
+  .field label { display:block; font-size:11px; font-weight:500; color:#7a8299; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.8px; }
+  input, textarea { width:100%; background:#0d0f14; border:1px solid #1e2330; border-radius:4px; color:#c8cdd8; font-family:'IBM Plex Sans',sans-serif; font-size:14px; padding:10px 12px; transition:border-color 0.2s; outline:none; }
+  input:focus, textarea:focus { border-color:#4d8eff; }
+  input::placeholder, textarea::placeholder { color:#2e3348; }
+  textarea { resize:vertical; line-height:1.6; }
+  .row-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .radio-group { display:flex; gap:8px; flex-wrap:wrap; }
+  .radio-btn { padding:8px 16px; background:#0d0f14; border:1px solid #1e2330; border-radius:4px; color:#5a6278; font-size:13px; cursor:pointer; transition:all 0.15s; font-family:'IBM Plex Sans',sans-serif; }
+  .radio-btn:hover { border-color:#2e3a55; color:#8a93aa; }
+  .radio-btn.active { background:#0d1a33; border-color:#4d8eff; color:#4d8eff; }
+  .radio-btn.danger { border-color:#ff3b3b44; color:#cc4444; }
+  .radio-btn.danger.active { background:#1a0d0d; border-color:#ff3b3b; color:#ff6b6b; }
+  .dynamic-list { display:flex; flex-direction:column; gap:12px; }
+  .list-item { background:#0d0f14; border:1px solid #1e2330; border-radius:4px; padding:14px; }
+  .list-item-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#3a4055; }
+  .list-item-fields { display:grid; gap:10px; }
+  .list-item .field { margin-bottom:0; }
+  .remove-btn { background:none; border:1px solid #3a2222; color:#7a3a3a; border-radius:3px; width:22px; height:22px; cursor:pointer; font-size:10px; }
+  .add-btn { background:none; border:1px dashed #1e2330; color:#3a4a6a; border-radius:4px; padding:9px; width:100%; cursor:pointer; font-size:12px; font-family:'IBM Plex Mono',monospace; transition:all 0.15s; }
+  .add-btn:hover { border-color:#4d8eff; color:#4d8eff; }
+  .nav { display:flex; justify-content:space-between; gap:12px; }
+  .btn { padding:11px 24px; border-radius:4px; font-size:13px; font-weight:500; cursor:pointer; transition:all 0.15s; border:none; font-family:'IBM Plex Sans',sans-serif; }
+  .btn-ghost { background:none; border:1px solid #1e2330; color:#5a6278; }
+  .btn-ghost:hover { border-color:#2e3a55; color:#8a93aa; }
+  .btn-ghost:disabled { opacity:0.3; cursor:not-allowed; }
+  .btn-primary { background:#4d8eff; color:#fff; }
+  .btn-primary:hover { background:#6a9fff; }
+  .btn-primary:disabled { background:#1a2440; color:#2e3a55; cursor:not-allowed; }
+  .btn-gerar { background:#1a6b3a; color:#fff; width:100%; padding:13px; font-size:14px; font-weight:600; border:none; border-radius:4px; cursor:pointer; transition:background 0.15s; }
+  .btn-gerar:hover { background:#21844a; }
+  .relatorio-edit-wrap { position:relative; margin:16px 0; }
+  .relatorio-textarea { width:100%; background:#0d0f14; border:1px solid #2a3a2a; border-radius:4px; padding:20px; font-size:14px; line-height:1.9; color:#c8cdd8; font-family:'IBM Plex Sans',sans-serif; resize:vertical; outline:none; min-height:220px; transition:border-color 0.2s; }
+  .relatorio-textarea:focus { border-color:#4d8eff; }
+  .edit-badge { position:absolute; top:10px; right:10px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#3a4055; background:#111420; border:1px solid #1e2330; padding:2px 8px; border-radius:2px; pointer-events:none; }
+  .action-bar { display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap; margin-top:4px; }
+  .btn-copy { background:#0d2018; border:1px solid #2a8a5a; color:#4ac97a; padding:9px 16px; border-radius:4px; font-size:12px; font-family:'IBM Plex Mono',monospace; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .btn-pdf { background:#1a1a3a; border:1px solid #4d4dff44; color:#8888ff; padding:9px 16px; border-radius:4px; font-size:12px; font-family:'IBM Plex Mono',monospace; cursor:pointer; }
+  .btn-reset { background:none; border:1px solid #1e2330; color:#5a6278; padding:9px 16px; border-radius:4px; font-size:12px; font-family:'IBM Plex Mono',monospace; cursor:pointer; }
+  .samu-section { border-top:1px solid #1e2330; padding-top:20px; margin-top:4px; }
+  .terminal-bar { background:#0d1220; border:1px solid #1e2a3a; border-radius:4px; padding:12px 16px; margin-bottom:20px; display:flex; align-items:center; gap:12px; }
+  .terminal-bar label { font-size:11px; color:#4d6a8a; font-family:'IBM Plex Mono',monospace; white-space:nowrap; text-transform:uppercase; letter-spacing:1px; }
+  .terminal-bar input { background:transparent; border:none; border-bottom:1px solid #1e2a3a; border-radius:0; padding:4px 0; font-size:13px; color:#8ab4ff; font-family:'IBM Plex Mono',monospace; }
+  .terminal-bar input:focus { border-bottom-color:#4d8eff; outline:none; }
+  .alerta-inconsciente { background:#1a0d0d; border:1px solid #ff3b3b44; border-radius:4px; padding:12px 14px; margin-bottom:16px; font-size:13px; color:#ff8888; line-height:1.6; }
+  .alerta-inconsciente strong { color:#ff6b6b; }
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1a4a2a; border:1px solid #2a8a5a; color:#4ac97a; font-family:'IBM Plex Mono',monospace; font-size:13px; padding:10px 24px; border-radius:6px; z-index:999; animation:fadeup 0.2s ease; pointer-events:none; white-space:nowrap; }
+  @keyframes fadeup { from{opacity:0;transform:translateX(-50%) translateY(8px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+  .hist-vazio { text-align:center; padding:32px; color:#3a4055; font-family:'IBM Plex Mono',monospace; font-size:13px; }
+  .hist-item { background:#0d0f14; border:1px solid #1e2330; border-radius:4px; padding:16px; margin-bottom:12px; }
+  .hist-item-header { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:8px; }
+  .hist-item-nome { font-weight:600; color:#eef0f6; font-size:14px; }
+  .hist-item-data { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#3a4055; white-space:nowrap; }
+  .hist-item-meta { font-size:12px; color:#5a6278; }
+  .hist-item-actions { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .btn-hist-ver { background:#0d1a33; border:1px solid #2a4a6a; color:#4d8eff; padding:6px 12px; border-radius:3px; font-size:11px; font-family:'IBM Plex Mono',monospace; cursor:pointer; }
+  .btn-hist-del { background:none; border:1px solid #3a2222; color:#7a3a3a; padding:6px 12px; border-radius:3px; font-size:11px; font-family:'IBM Plex Mono',monospace; cursor:pointer; }
+  .hist-count { font-family:'IBM Plex Mono',monospace; font-size:11px; color:#3a4055; margin-bottom:16px; }
+  .modal-overlay { position:fixed; inset:0; background:#00000099; z-index:100; display:flex; align-items:center; justify-content:center; padding:16px; }
+  .modal { background:#111420; border:1px solid #1e2330; border-radius:8px; max-width:680px; width:100%; max-height:90vh; overflow-y:auto; padding:24px; }
+  .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .modal-title { font-family:'IBM Plex Mono',monospace; font-size:12px; color:#4d8eff; font-weight:600; letter-spacing:1px; }
+  .modal-close { background:none; border:1px solid #1e2330; color:#5a6278; border-radius:3px; width:28px; height:28px; cursor:pointer; font-size:14px; }
+  @media(max-width:540px){ .row-2{grid-template-columns:1fr} .step-pill{font-size:8px;padding:6px 2px} .action-bar{flex-direction:column} .action-bar button{width:100%;text-align:center;} }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const STEPS = ["Dados do Usuário","Estado Clínico","Equipe de Atendimento","SAMU","Desfecho & Cientes","Relatório Final"];
+const HIST_KEY = "ocorrencias_historico";
+const TERM_KEY = "ocorrencias_terminal";
+
+const emptyForm = () => ({
+  horarioOcorrencia:"", nomeUsuario:"", rgUsuario:"", cpfUsuario:"", idadeUsuario:"",
+  localOcorrencia:"", quemChamou:"",
+  sinaisVitais:"", situacaoUsuario:"", precisaCadeira:"nao", consciente:"sim",
+  nivelConsciente:"", aceitaConducao:"sim", hospitalDestino:"",
+  equipe:[{nome:"",cargo:"",re:""}],
+  samuSolicitado:"nao", horarioSamuContato:"", atendenteSamu:"", protocoloSamu:"",
+  horarioChegadaSamu:"", horarioSaidaSamu:"", placaAmbu:"", prefixoAmbu:"",
+  equipeSamu:[{nome:"",funcao:"",recrea:""}],
+  horarioFinalizacao:"", cientes:[{nome:"",cargo:"",re:""}], observacoesFinais:"",
+});
+
+function carregarHistorico() {
+  try { return JSON.parse(localStorage.getItem(HIST_KEY)) || []; } catch { return []; }
+}
+function salvarHistorico(lista) { localStorage.setItem(HIST_KEY, JSON.stringify(lista)); }
+
+async function copiarTexto(texto) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try { await navigator.clipboard.writeText(texto); return true; } catch {}
+  }
+  const ta = document.createElement("textarea");
+  ta.value = texto;
+  ta.setAttribute("readonly","");
+  ta.style.cssText = "position:fixed;top:0;left:0;opacity:0;";
+  document.body.appendChild(ta);
+  ta.focus(); ta.select(); ta.setSelectionRange(0,99999);
+  const ok = document.execCommand("copy");
+  document.body.removeChild(ta);
+  return ok;
+}
+
+// ── GERADOR DE TEXTO OFFLINE ─────────────────────────────────────────────────
+function gerarRelatorioOffline(form, terminal) {
+  const nome = form.nomeUsuario.trim();
+  const primeiroNome = nome.split(" ")[0];
+
+  // Detecção de gênero pelo primeiro nome
+  const femininos = ["ana","maria","julia","júlia","carla","paula","sandra","patricia","patrícia","fernanda","beatriz","claudia","cláudia","rosa","lucia","lúcia","helena","camila","larissa","aline","tatiana","vanessa","simone","andrea","andréa","débora","debora","silvia","sílvia","vera","célia","celia","marcia","márcia","elaine","renata","roberta","cristina","daniela","adriana","amanda","bruna","leticia","letícia","natalia","natália","priscila","rita","sonia","sônia","tereza","viviane","flavia","flávia","gisele","janaina","janaína","lorena","marcela","miriam","nadia","nádia","raquel","sabrina","tania","tânia","valeria","valéria","michele","micheli","lilian","liliane","ana","isabela","isabel","isadora","laura","livia","lívia","luana","luisa","luísa","marta","monica","mônica","nathalia","nathália","paloma","pamela","pâmela","stefania","stefânia","thais","thaís","vivian"];
+  const fn = primeiroNome.toLowerCase();
+  const ehF = femininos.some(n => fn === n || fn.startsWith(n));
+  const sr    = ehF ? "Sra." : "Sr.";
+  const o     = ehF ? "a" : "o";
+  const O     = ehF ? "A" : "O";
+  const mesmo = ehF ? "a mesma" : "o mesmo";
+  const Mesmo = ehF ? "A mesma" : "O mesmo";
+  const inconsciente = form.consciente === "nao";
+
+  const paragrafos = [];
+
+  // ── P1: Identificação ──
+  const rgStr = form.rgUsuario ? `, portador${ehF?"a":""} do RG nº ${form.rgUsuario}` : "";
+  let como = form.quemChamou
+    ? `após ${form.quemChamou}`
+    : inconsciente
+      ? "sendo encontrad" + o + " desacordad" + o + " no local"
+      : "apresentando mal súbito";
+  paragrafos.push(
+    `Por volta das ${form.horarioOcorrencia}, ${o} ${sr} ${nome}${rgStr}, foi identificad${o} na ${form.localOcorrencia} ${como}.`
+  );
+
+  // ── P2: Equipe e estado clínico ──
+  const membrosValidos = form.equipe.filter(e => e.nome.trim());
+  if (membrosValidos.length > 0) {
+    const listaMembros = membrosValidos.map(e => `${e.cargo} ${e.nome}${e.re ? ", RE " + e.re : ""}`);
+    let equipeStr = "";
+    if (listaMembros.length === 1) equipeStr = listaMembros[0];
+    else equipeStr = listaMembros.slice(0,-1).join(", ") + " e " + listaMembros[listaMembros.length-1];
+
+    let p2 = `${O} usuári${o} recebeu auxílio d${o} ${equipeStr}.`;
+
+    if (inconsciente) {
+      // Usuário inconsciente: descreve o que foi observado pelos colaboradores
+      p2 += ` No momento do atendimento, ${o} usuári${o} encontrava-se inconsciente e sem resposta a estímulos verbais.`;
+      if (form.situacaoUsuario) {
+        p2 += ` Os colaboradores observaram: ${form.situacaoUsuario}.`;
+      }
+      if (form.precisaCadeira === "sim") {
+        p2 += ` Diante do estado apresentado, foi necessária a utilização de cadeira de rodas para auxílio na locomoção.`;
+      }
+    } else {
+      // Usuário consciente: usa linguagem de relato
+      if (form.situacaoUsuario) {
+        p2 += ` No momento do atendimento, ${mesmo} encontrava-se consciente${form.nivelConsciente ? " e " + form.nivelConsciente : " e orientado"}, queixando-se de ${form.situacaoUsuario}.`;
+      }
+      if (form.precisaCadeira === "sim") {
+        p2 += ` Devido ao quadro apresentado, foi necessária a utilização de cadeira de rodas para locomoção.`;
+      }
+      if (form.aceitaConducao === "sim" && !form.samuSolicitado === "sim") {
+        p2 += ` ${Mesmo} aceitou ser conduzid${o} para atendimento médico.`;
+      } else if (form.aceitaConducao === "nao") {
+        p2 += ` ${Mesmo} recusou ser conduzid${o} a uma unidade de saúde, sendo orientad${o} pelos colaboradores presentes.`;
+      }
+    }
+
+    // Sinais vitais
+    if (form.sinaisVitais) {
+      p2 += ` Sinais vitais aferidos: ${form.sinaisVitais}.`;
+    } else {
+      p2 += ` No momento do atendimento, não foram aferidos os sinais vitais d${o} usuári${o}.`;
+    }
+
+    paragrafos.push(p2);
+  }
+
+  // ── P3: SAMU ──
+  if (form.samuSolicitado === "sim") {
+    let motivo = inconsciente
+      ? `Diante do estado de inconsciência apresentado pel${o} usuári${o}`
+      : `Diante da situação apresentada`;
+
+    let pSamu = `${motivo}, foi realizado contato com o SAMU`;
+    if (form.horarioSamuContato) pSamu += ` às ${form.horarioSamuContato}`;
+    if (form.atendenteSamu) {
+      pSamu += `, sendo o atendimento registrado pela atendente ${form.atendenteSamu}`;
+      if (form.protocoloSamu) pSamu += `, sob protocolo nº ${form.protocoloSamu}`;
+    } else if (form.protocoloSamu) {
+      pSamu += `, gerando o protocolo nº ${form.protocoloSamu}`;
+    }
+    pSamu += ".";
+    paragrafos.push(pSamu);
+
+    // Chegada da viatura
+    if (form.horarioChegadaSamu) {
+      let pChegada = `Às ${form.horarioChegadaSamu}, compareceu ao local a viatura do SAMU`;
+      if (form.prefixoAmbu) pChegada += ` ${form.prefixoAmbu}`;
+      if (form.placaAmbu) pChegada += `, placa ${form.placaAmbu}`;
+
+      const equSamu = form.equipeSamu.filter(e => e.nome.trim());
+      if (equSamu.length > 0) {
+        const ms = equSamu.map(e => `${e.funcao ? e.funcao+" " : ""}${e.nome}${e.recrea ? ", RE/CREA " + e.recrea : ""}`);
+        pChegada += `, composta por ${ms.length===1 ? ms[0] : ms.slice(0,-1).join(", ") + " e " + ms[ms.length-1]}`;
+      }
+      pChegada += ".";
+
+      if (form.hospitalDestino) {
+        if (inconsciente) {
+          pChegada += ` Após avaliação no local, a equipe médica assumiu os cuidados d${o} usuári${o}, informando que ${o} mesmo seria encaminad${o} à ${form.hospitalDestino} para atendimento especializado.`;
+        } else {
+          pChegada += ` Após avaliação no local, a equipe médica informou que ${o} usuári${o} seria encaminad${o} à ${form.hospitalDestino}, onde permaneceria sob cuidados médicos.`;
+        }
+      }
+      paragrafos.push(pChegada);
+    }
+
+    // Encerramento com SAMU
+    if (form.horarioSaidaSamu) {
+      if (inconsciente) {
+        paragrafos.push(`${O} usuári${o} foi conduzid${o} pela equipe do SAMU, permanecendo a ocorrência sem intercorrências adicionais até a saída da viatura do local às ${form.horarioSaidaSamu}.`);
+      } else {
+        paragrafos.push(`${O} usuári${o} foi conduzid${o} pela equipe do SAMU ao hospital, permanecendo a ocorrência sem alterações até a saída da equipe do local.`);
+      }
+    }
+  } else {
+    // Sem SAMU — encaminhamento direto ou recusa
+    if (form.hospitalDestino && !inconsciente && form.aceitaConducao === "sim") {
+      paragrafos.push(`${O} usuári${o} aceitou ser conduzid${o} à ${form.hospitalDestino} para avaliação médica, sendo acompanhad${o} pelos colaboradores presentes.`);
+    }
+  }
+
+  // ── Observações finais ──
+  if (form.observacoesFinais.trim()) {
+    paragrafos.push(form.observacoesFinais.trim());
+  }
+
+  // ── Finalização ──
+  paragrafos.push(
+    form.horarioFinalizacao
+      ? `Ocorrência finalizada às ${form.horarioFinalizacao}.`
+      : "Ocorrência finalizada."
+  );
+
+  // ── Cientes ──
+  const cientes = form.cientes.filter(c => c.nome.trim());
+  if (cientes.length > 0) {
+    const cStr = cientes.map(c => `${c.cargo ? c.cargo+" " : ""}${c.nome}${c.re ? " – RE " + c.re : ""}`).join(" | ");
+    paragrafos.push(`Ciente${cientes.length > 1 ? "s" : ""}: ${cStr}.`);
+  }
+
+  return paragrafos.join("\n\n");
+}
+
+// ── Componentes base ─────────────────────────────────────────────────────────
+function Inp({label,value,onChange,placeholder,type="text",hint}) {
+  return (
+    <div className="field">
+      <label>{label}</label>
+      {hint && <div style={{fontSize:11,color:"#3a4a5a",marginBottom:6,fontStyle:"italic"}}>{hint}</div>}
+      <input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder||label}/>
+    </div>
+  );
+}
+function TA({label,value,onChange,placeholder,rows=3,hint}) {
+  return (
+    <div className="field">
+      <label>{label}</label>
+      {hint && <div style={{fontSize:11,color:"#3a4a5a",marginBottom:6,fontStyle:"italic"}}>{hint}</div>}
+      <textarea rows={rows} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder||label}/>
+    </div>
+  );
+}
+function Radio({label,value,options,onChange}) {
+  return (
+    <div className="field"><label>{label}</label>
+      <div className="radio-group">
+        {options.map(o=>(
+          <button key={o.v} className={`radio-btn${o.danger?" danger":""}${value===o.v?" active":""}`} onClick={()=>onChange(o.v)} type="button">{o.l}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+function DList({items,onChange,fields,addLabel}) {
+  const add=()=>onChange([...items,Object.fromEntries(fields.map(f=>[f.key,""]))]);
+  const rem=i=>onChange(items.filter((_,idx)=>idx!==i));
+  const upd=(i,k,v)=>{const a=[...items];a[i]={...a[i],[k]:v};onChange(a);};
+  const cols=fields.length===2?"1fr 1fr":"1fr 1fr 1fr";
+  return (
+    <div className="dynamic-list">
+      {items.map((item,i)=>(
+        <div key={i} className="list-item">
+          <div className="list-item-header">
+            <span>#{i+1}</span>
+            {items.length>1&&<button className="remove-btn" onClick={()=>rem(i)} type="button">✕</button>}
+          </div>
+          <div className="list-item-fields" style={{gridTemplateColumns:cols}}>
+            {fields.map(f=>(
+              <div className="field" key={f.key}>
+                <label>{f.label}</label>
+                <input type="text" value={item[f.key]||""} onChange={e=>upd(i,f.key,e.target.value)} placeholder={f.ph||f.label}/>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+      <button className="add-btn" onClick={add} type="button">+ {addLabel}</button>
+    </div>
+  );
+}
+function Toast({msg}) {
+  return <div className="toast">{msg}</div>;
+}
+
+// ── Modal histórico ──────────────────────────────────────────────────────────
+function ModalRelatorio({item,onClose}) {
+  const [texto,setTexto] = useState(item.relatorio);
+  const [toast,setToast] = useState("");
+  const mostrarToast = msg => { setToast(msg); setTimeout(()=>setToast(""),2000); };
+  const copiar = async () => {
+    const ok = await copiarTexto(texto);
+    mostrarToast(ok?"✓ Texto copiado!":"Selecione e copie manualmente");
+  };
+  const exportPDF = () => {
+    const w = window.open("","_blank");
+    w.document.write(`<html><head><meta charset="UTF-8"/><style>body{font-family:'Times New Roman',serif;font-size:12pt;line-height:1.8;color:#000;padding:40px;}h2{font-size:14pt;text-align:center;margin-bottom:4px;}.sub{text-align:center;font-size:11pt;color:#444;margin-bottom:24px;border-bottom:1px solid #000;padding-bottom:12px;}p{white-space:pre-wrap;text-align:justify;}</style></head><body><h2>${item.terminal||"Relatório de Ocorrência"}</h2><div class="sub">Data: ${item.data} — Usuário: ${item.nomeUsuario}</div><p>${texto}</p></body></html>`);
+    w.document.close(); w.focus(); setTimeout(()=>w.print(),400);
+  };
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      {toast&&<Toast msg={toast}/>}
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <div className="modal-header">
+          <span className="modal-title">{item.terminal||"RELATÓRIO"} — {item.data}</span>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div style={{fontSize:13,color:"#5a6278",marginBottom:12,fontFamily:"'IBM Plex Mono',monospace"}}>Usuário: {item.nomeUsuario}</div>
+        <div className="relatorio-edit-wrap">
+          <textarea className="relatorio-textarea" value={texto} onChange={e=>setTexto(e.target.value)}/>
+          <span className="edit-badge">editável</span>
+        </div>
+        <div className="action-bar">
+          <button className="btn-pdf" onClick={exportPDF}>⬇ Exportar PDF</button>
+          <button className="btn-copy" onClick={copiar}>Copiar texto</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Tela histórico ───────────────────────────────────────────────────────────
+function TelaHistorico({onNova}) {
+  const [lista,setLista] = useState(carregarHistorico());
+  const [modal,setModal] = useState(null);
+  const deletar = (id,e) => {
+    e.stopPropagation();
+    if(!window.confirm("Excluir esta ocorrência?")) return;
+    const nova = lista.filter(i=>i.id!==id);
+    setLista(nova); salvarHistorico(nova);
+  };
+  const limpar = () => {
+    if(!window.confirm("Limpar todo o histórico?")) return;
+    setLista([]); salvarHistorico([]);
+  };
+  return (
+    <>
+      {modal&&<ModalRelatorio item={modal} onClose={()=>setModal(null)}/>}
+      <div className="card">
+        <div className="card-title">Histórico de Ocorrências</div>
+        {lista.length===0
+          ? <div className="hist-vazio">Nenhuma ocorrência salva ainda.<br/>Gere um relatório para começar.</div>
+          : <>
+              <div className="hist-count">{lista.length} ocorrência{lista.length!==1?"s":""} salva{lista.length!==1?"s":""}</div>
+              {[...lista].reverse().map(item=>(
+                <div key={item.id} className="hist-item">
+                  <div className="hist-item-header">
+                    <div className="hist-item-nome">{item.nomeUsuario}</div>
+                    <div className="hist-item-data">{item.data}</div>
+                  </div>
+                  <div className="hist-item-meta">
+                    {item.terminal&&<span>📍 {item.terminal} · </span>}
+                    <span>🕐 {item.horario} · </span>
+                    <span>📌 {item.local}</span>
+                    {item.inconsciente&&<span style={{color:"#ff8888"}}> · ⚠ Inconsciente</span>}
+                  </div>
+                  <div className="hist-item-actions">
+                    <button className="btn-hist-ver" onClick={()=>setModal(item)}>Ver / Editar</button>
+                    <button className="btn-hist-del" onClick={e=>deletar(item.id,e)}>Excluir</button>
+                  </div>
+                </div>
+              ))}
+              <div style={{marginTop:16,textAlign:"right"}}>
+                <button className="btn-reset" onClick={limpar}>Limpar histórico</button>
+              </div>
+            </>
+        }
+      </div>
+      <div style={{textAlign:"center"}}>
+        <button className="btn btn-primary" onClick={onNova}>+ Nova Ocorrência</button>
+      </div>
+    </>
+  );
+}
+
+// ── App ──────────────────────────────────────────────────────────────────────
+function App() {
+  const [tela,setTela] = useState("form");
+  const [step,setStep] = useState(0);
+  const [form,setForm] = useState(emptyForm());
+  const [relatorio,setRelatorio] = useState("");
+  const [toast,setToast] = useState("");
+  const [terminal,setTerminal] = useState(localStorage.getItem(TERM_KEY)||"");
+
+  useEffect(()=>{ if(terminal) localStorage.setItem(TERM_KEY,terminal); },[terminal]);
+
+  const mostrarToast = msg => { setToast(msg); setTimeout(()=>setToast(""),2200); };
+  const s = k => v => setForm(f=>({...f,[k]:v}));
+
+  const copiar = async () => {
+    const ok = await copiarTexto(relatorio);
+    mostrarToast(ok?"✓ Texto copiado!":"Selecione e copie manualmente");
+  };
+
+  const exportPDF = () => {
+    const w = window.open("","_blank");
+    w.document.write(`<html><head><meta charset="UTF-8"/><style>body{font-family:'Times New Roman',serif;font-size:12pt;line-height:1.8;color:#000;padding:40px;}h2{font-size:14pt;text-align:center;margin-bottom:4px;}.sub{text-align:center;font-size:11pt;color:#444;margin-bottom:24px;border-bottom:1px solid #000;padding-bottom:12px;}p{white-space:pre-wrap;text-align:justify;}</style></head><body><h2>${terminal||"Relatório de Ocorrência"}</h2><div class="sub">Usuário: ${form.nomeUsuario} — ${new Date().toLocaleString("pt-BR")}</div><p>${relatorio}</p></body></html>`);
+    w.document.close(); w.focus(); setTimeout(()=>w.print(),400);
+  };
+
+  const canNext = () => {
+    if(step===0) return form.horarioOcorrencia && form.nomeUsuario && form.localOcorrencia;
+    if(step===1) return form.situacaoUsuario;
+    if(step===2) return form.equipe[0]?.nome;
+    return true;
+  };
+
+  const gerar = () => {
+    const texto = gerarRelatorioOffline(form, terminal);
+    setRelatorio(texto);
+    const hist = carregarHistorico();
+    hist.push({
+      id:Date.now(), data:new Date().toLocaleString("pt-BR"),
+      nomeUsuario:form.nomeUsuario, horario:form.horarioOcorrencia,
+      local:form.localOcorrencia, terminal, relatorio:texto,
+      inconsciente: form.consciente === "nao"
+    });
+    salvarHistorico(hist);
+  };
+
+  const next = () => {
+    if(step===4){ setStep(5); setTimeout(gerar,50); }
+    else setStep(s=>s+1);
+  };
+
+  const nova = () => { setStep(0); setForm(emptyForm()); setRelatorio(""); setTela("form"); };
+  const inconsciente = form.consciente === "nao";
+
+  return (
+    <div className="app">
+      {toast&&<Toast msg={toast}/>}
+      <div className="header">
+        <div className="header-top">
+          <div>
+            <div className="header-badge"><span className="dot"/> Sistema Ativo</div>
+            <h1>Agente de <span>Ocorrências</span></h1>
+            <p className="subtitle">// Gerador de relatórios de mal súbito • Terminal</p>
+          </div>
+          <button className={`btn-historico${tela==="historico"?" ativo":""}`} onClick={()=>setTela(t=>t==="historico"?"form":"historico")}>
+            {tela==="historico"?"← Voltar":"📋 Histórico"}
+          </button>
+        </div>
+      </div>
+
+      <div className="terminal-bar">
+        <label>Terminal</label>
+        <input type="text" value={terminal} onChange={e=>setTerminal(e.target.value)} placeholder="Ex: Terminal Jabaquara"/>
+      </div>
+
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+        <span className="offline-badge">⚡ Modo Offline — Sem IA</span>
+      </div>
+
+      {tela==="historico"&&<TelaHistorico onNova={nova}/>}
+
+      {tela==="form"&&<>
+        <div className="step-nav">
+          {STEPS.map((s,i)=>(
+            <div key={i} className={`step-pill${i<step?" done":i===step?" active":""}`}>
+              {i<step?"✓":`${i+1}`} {s}
+            </div>
+          ))}
+        </div>
+
+        {step===0&&(
+          <div className="card">
+            <div className="card-title">Dados do Usuário</div>
+            <div className="row-2">
+              <Inp label="Horário da Ocorrência *" value={form.horarioOcorrencia} onChange={s("horarioOcorrencia")} placeholder="Ex: 02h04"/>
+              <Inp label="Idade" value={form.idadeUsuario} onChange={s("idadeUsuario")} placeholder="Ex: 67 anos"/>
+            </div>
+            <Inp label="Nome completo do usuário *" value={form.nomeUsuario} onChange={s("nomeUsuario")} placeholder="Nome completo"/>
+            <div className="row-2">
+              <Inp label="RG" value={form.rgUsuario} onChange={s("rgUsuario")} placeholder="00.000.000-0"/>
+              <Inp label="CPF (não aparece no texto)" value={form.cpfUsuario} onChange={s("cpfUsuario")} placeholder="000.000.000-00"/>
+            </div>
+            <Inp label="Local da ocorrência *" value={form.localOcorrencia} onChange={s("localOcorrencia")} placeholder="Ex: Plataforma 03, próximo ao PMD 38"/>
+            <Inp label="Como foi identificado / quem chamou ajuda" value={form.quemChamou} onChange={s("quemChamou")} placeholder="Ex: sofrer uma queda"/>
+          </div>
+        )}
+
+        {step===1&&(
+          <div className="card">
+            <div className="card-title">Estado Clínico</div>
+            <Radio
+              label="Está consciente?"
+              value={form.consciente}
+              onChange={s("consciente")}
+              options={[
+                {v:"sim",l:"Sim — consciente"},
+                {v:"nao",l:"Não — inconsciente", danger:true},
+              ]}
+            />
+
+            {inconsciente && (
+              <div className="alerta-inconsciente">
+                <strong>⚠ Usuário inconsciente</strong> — o relatório será adaptado automaticamente. Descreva abaixo apenas o que foi <strong>observado</strong> pelos colaboradores (sem relatos do usuário). O SAMU será fortemente indicado.
+              </div>
+            )}
+
+            <TA
+              label={inconsciente ? "O que foi observado pelos colaboradores *" : "Situação relatada / observada *"}
+              value={form.situacaoUsuario}
+              onChange={s("situacaoUsuario")}
+              hint={inconsciente
+                ? "Ex: ausência de resposta, respiração ofegante, palidez intensa"
+                : "Ex: queixando-se de dores abdominais, desequilíbrio e sudorese"}
+              rows={3}
+            />
+
+            {!inconsciente && (
+              <Inp
+                label="Nível de consciência (opcional)"
+                value={form.nivelConsciente}
+                onChange={s("nivelConsciente")}
+                placeholder="Ex: orientado, confuso, sonolento"
+              />
+            )}
+
+            <Inp
+              label="Sinais vitais (deixe em branco se não foram aferidos)"
+              value={form.sinaisVitais}
+              onChange={s("sinaisVitais")}
+              placeholder="Ex: PA 130/90, FC 88bpm, SpO2 96%"
+            />
+
+            <Radio label="Necessita cadeira de rodas?" value={form.precisaCadeira} onChange={s("precisaCadeira")} options={[{v:"sim",l:"Sim"},{v:"nao",l:"Não"}]}/>
+
+            {!inconsciente && (
+              <Radio
+                label="Aceitou ser conduzido ao pronto-socorro?"
+                value={form.aceitaConducao}
+                onChange={s("aceitaConducao")}
+                options={[{v:"sim",l:"Sim"},{v:"nao",l:"Não"},{v:"na",l:"N/A"}]}
+              />
+            )}
+
+            <Inp label="Hospital / UPA de destino" value={form.hospitalDestino} onChange={s("hospitalDestino")} placeholder="Ex: UPA Santo Amaro"/>
+          </div>
+        )}
+
+        {step===2&&(
+          <div className="card">
+            <div className="card-title">Equipe de Atendimento</div>
+            <DList items={form.equipe} onChange={s("equipe")} addLabel="Adicionar colaborador"
+              fields={[
+                {key:"cargo",label:"Cargo",ph:"Ex: Vigilante, OTU, CAM"},
+                {key:"nome",label:"Nome",ph:"Nome completo"},
+                {key:"re",label:"RE",ph:"Ex: 4520"},
+              ]}/>
+          </div>
+        )}
+
+        {step===3&&(
+          <div className="card">
+            <div className="card-title">SAMU</div>
+            {inconsciente && (
+              <div className="alerta-inconsciente" style={{marginBottom:16}}>
+                <strong>⚠ Usuário inconsciente</strong> — acionamento do SAMU é obrigatório neste caso.
+              </div>
+            )}
+            <Radio label="SAMU foi solicitado?" value={form.samuSolicitado} onChange={s("samuSolicitado")} options={[{v:"sim",l:"Sim"},{v:"nao",l:"Não"}]}/>
+            {form.samuSolicitado==="sim"&&(
+              <div className="samu-section">
+                <div className="row-2">
+                  <Inp label="Horário do contato" value={form.horarioSamuContato} onChange={s("horarioSamuContato")} placeholder="Ex: 02h08"/>
+                  <Inp label="Atendente SAMU" value={form.atendenteSamu} onChange={s("atendenteSamu")} placeholder="Nome da atendente"/>
+                </div>
+                <Inp label="Número do protocolo" value={form.protocoloSamu} onChange={s("protocoloSamu")} placeholder="Ex: 20260694054"/>
+                <div className="row-2">
+                  <Inp label="Horário de chegada" value={form.horarioChegadaSamu} onChange={s("horarioChegadaSamu")} placeholder="Ex: 02h48"/>
+                  <Inp label="Horário de saída" value={form.horarioSaidaSamu} onChange={s("horarioSaidaSamu")} placeholder="Ex: 02h54"/>
+                </div>
+                <div className="row-2">
+                  <Inp label="Placa da ambulância" value={form.placaAmbu} onChange={s("placaAmbu")} placeholder="Ex: DJM-5625"/>
+                  <Inp label="Prefixo" value={form.prefixoAmbu} onChange={s("prefixoAmbu")} placeholder="Ex: AM-0945"/>
+                </div>
+                <div style={{marginTop:16}}>
+                  <div className="field"><label>Equipe do SAMU</label></div>
+                  <DList items={form.equipeSamu} onChange={s("equipeSamu")} addLabel="Adicionar membro"
+                    fields={[
+                      {key:"funcao",label:"Função",ph:"Ex: Médico, Enfermeira"},
+                      {key:"nome",label:"Nome",ph:"Nome completo"},
+                      {key:"recrea",label:"RE / CREA",ph:"Ex: 23.633.229-06"},
+                    ]}/>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {step===4&&(
+          <div className="card">
+            <div className="card-title">Desfecho & Cientes</div>
+            <Inp label="Horário de finalização" value={form.horarioFinalizacao} onChange={s("horarioFinalizacao")} placeholder="Ex: 02h54"/>
+            <TA label="Observações finais" value={form.observacoesFinais} onChange={s("observacoesFinais")} placeholder="Informações adicionais relevantes..."/>
+            <div className="field" style={{marginTop:8}}><label>Cientes da ocorrência</label></div>
+            <DList items={form.cientes} onChange={s("cientes")} addLabel="Adicionar ciente"
+              fields={[
+                {key:"cargo",label:"Cargo",ph:"Ex: E.T., Supervisor"},
+                {key:"nome",label:"Nome",ph:"Nome completo"},
+                {key:"re",label:"RE",ph:"Ex: 111"},
+              ]}/>
+          </div>
+        )}
+
+        {step===5&&(
+          <div className="card">
+            <div className="card-title">Relatório Final</div>
+            {relatorio&&(
+              <>
+                <div className="relatorio-edit-wrap">
+                  <textarea className="relatorio-textarea" value={relatorio} onChange={e=>setRelatorio(e.target.value)}/>
+                  <span className="edit-badge">editável</span>
+                </div>
+                <div className="action-bar">
+                  <button className="btn-reset" onClick={nova}>Nova ocorrência</button>
+                  <button className="btn-reset" onClick={()=>setTela("historico")}>Ver histórico</button>
+                  <button className="btn-pdf" onClick={exportPDF}>⬇ PDF</button>
+                  <button className="btn-copy" onClick={copiar}>Copiar texto</button>
+                </div>
+              </>
+            )}
+            {!relatorio&&(
+              <button className="btn-gerar" onClick={gerar}>✦ Gerar Relatório</button>
+            )}
+          </div>
+        )}
+
+        {step<5&&(
+          <div className="nav">
+            <button className="btn btn-ghost" onClick={()=>setStep(s=>Math.max(0,s-1))} disabled={step===0}>← Voltar</button>
+            <button className="btn btn-primary" onClick={next} disabled={!canNext()}>
+              {step===4?"Gerar Relatório →":"Próximo →"}
+            </button>
+          </div>
+        )}
+      </>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
